@@ -1,0 +1,100 @@
+// Block definition (there may be more than one block per file)
+FUNCTION_BLOCK climat
+
+
+// Define input variables
+VAR_INPUT
+    temperature			 : REAL;
+	humidity			 : REAL;
+	requestedTemperature : REAL;
+	roomVolume 			 : REAL;
+END_VAR
+
+// Define output variable
+VAR_OUTPUT
+    toCool : REAL;
+	toWarm : REAL;
+END_VAR
+
+
+// Fuzzify input variable 'temperature'
+FUZZIFY temperature
+    TERM cold 			:= (0, 1) (15, 0); 
+    TERM comfortable 	:= (13, 0) (20, 1) (23, 1) (25, 0);
+    TERM hot 			:= (23, 0) (50, 1);
+END_FUZZIFY
+
+// Fuzzify input variable 'humidity'
+FUZZIFY humidity
+    TERM low 	 := (0, 1) (10, 1) (25, 0);
+	TERM normal	 := (20, 0) (30, 1) (40, 0);
+    TERM high	 := (35, 0) (50, 1);
+END_FUZZIFY
+
+// Fuzzify input variable 'requestedTemperature'
+FUZZIFY requestedTemperature
+    TERM cold 		 := (0, 1) (15, 0) ; 
+    TERM comfortable := (13, 0) (20, 1) (23, 1) (25, 0);
+    TERM hot		 := (23, 0) (50, 1);
+END_FUZZIFY
+
+// Fuzzify input variable 'roomVolume' im square meters
+FUZZIFY roomVolume
+    TERM small 		:= (0, 1) (10, 1) (20, 1) (25, 0);
+	TERM average 	:= (23, 0) (30, 1) (40, 1) (40, 0);
+    TERM big 		:= (38, 0) (50, 1);
+END_FUZZIFY
+
+
+// Defzzzify output variable 'toCool'
+DEFUZZIFY toCool
+    TERM aLittleBit := (0, 0) (3, 1) (6, 0);
+    TERM cooler 	:= (6, 0) (9, 1) (12, 0);
+    TERM strongly 	:= (12, 0) (20, 1) (30, 0);
+    
+    METHOD : COG;	// Use 'Center Of Gravity' defuzzification method
+    
+    DEFAULT := 0;	// Default value is 0 (if no rule activates defuzzifier)
+END_DEFUZZIFY
+
+// Defzzzify output variable 'toWarm'
+DEFUZZIFY toWarm
+    TERM aLittleBit := (0, 0) (3, 1) (6, 0);
+    TERM warmer 	:= (6, 0) (9, 1) (12, 0);
+    TERM strongly 	:= (12, 0) (20, 1) (30, 0);
+    
+    METHOD : COG;	// Use 'Center Of Gravity' defuzzification method
+    
+    DEFAULT := 0;	// Default value is 0 (if no rule activates defuzzifier)
+END_DEFUZZIFY
+
+
+RULEBLOCK No1
+	AND : MIN;	// Use 'min' for 'and' (also implicit use 'max' for 'or' to fulfill DeMorgan's Law)
+    
+    ACT : MIN;	// Use 'min' activation method
+    
+    ACCU : MAX;	// Use 'max' accumulation method
+
+    RULE 1 : IF temperature IS cold AND requestedTemperature IS comfortable AND (humidity IS normal OR roomVolume IS average)
+             THEN toWarm IS warmer;
+
+    RULE 2 : IF temperature IS cold AND requestedTemperature IS hot AND (humidity IS normal OR roomVolume IS average)
+             THEN toWarm IS strongly; 
+			 
+	RULE 3 : IF temperature IS comfortable AND requestedTemperature IS hot AND (humidity IS normal OR roomVolume IS average)
+             THEN toWarm IS warmer; 
+		
+	RULE 4 : IF temperature IS comfortable AND requestedTemperature IS cold AND (humidity IS normal OR roomVolume IS average)
+             THEN toCool IS cooler; 
+
+    RULE 5 : IF temperature IS hot AND requestedTemperature IS cold AND (humidity IS normal OR roomVolume IS average)
+             THEN toCool IS strongly; 
+			 
+	RULE 6 : IF temperature IS hot AND requestedTemperature IS comfortable AND (humidity IS normal OR roomVolume IS average)
+             THEN toCool IS cooler;
+			 
+END_RULEBLOCK
+
+
+END_FUNCTION_BLOCK 
